@@ -34,10 +34,12 @@ def buscar_por_artista(artista):
         for cancion in canciones:
             print(f"Nombre: {cancion[0]}")
             print(f"Artista: {cancion[1]}")
+            print(f"Letra: {cancion[2]}")
             print("-" * 20)
     else:
         print(f"No se encontraron canciones del artista {artista}")
 
+# funcion para buscar canciones por nombre
 def buscar_por_nombre(nombre):
     cursor = conexion.cursor()
     cursor.execute(
@@ -50,6 +52,7 @@ def buscar_por_nombre(nombre):
         for cancion in canciones:
             print(f"Nombre: {cancion[0]}")
             print(f"Artista: {cancion[1]}")
+            print(f"Letra: {cancion[2]}")
             print("-" * 20)
     else:
         print(f"No se encontraron canciones con el nombre {nombre}")
