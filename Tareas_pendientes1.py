@@ -8,7 +8,7 @@ connection = psycopg2.connect(
     password="x8jx5yt5",
     host="localhost"
 )
-
+cursor = connection.cursor()
 def ingresar_usuario():
     usuario = input("Ingrese su nombre de usuario: ")
     return usuario
@@ -68,6 +68,12 @@ def main():
             opcion = input("1. Ingresar\n2. Registrar\n3. Salir\nSeleccione una opción: ")
             if opcion == "1":
                 usuario = ingresar_usuario()
+                cursor.execute("SELECT COUNT(*) FROM tareas WHERE usuario = %s", (usuario,))
+                count = cursor.fetchone()[0]
+                if count == 0:
+                    print("El usuario ingresado no está registrado. Por favor, inténtelo de nuevo.")
+                    usuario = None
+                    continue
             elif opcion == "2":
                 usuario = registrar_usuario()
             elif opcion == "3":
