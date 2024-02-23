@@ -1,139 +1,218 @@
-# Importar librerías
 import psycopg2
-import matplotlib.pyplot as plt
-import numpy as np
+from datetime import datetime
 
-# Conectar a la base de datos PostgreSQL
-conn = psycopg2.connect(
-    host="localhost",
-    user="postgres",
-    password="x8jx5yt5",
-    database="980proyectos",
-)
+# Conexión con la base de datos
+try:
+    connection = psycopg2.connect(
+        database="980proyectos",
+        user="postgres",
+        password="x8jx5yt5",
+        host="localhost",
+    )
+    cursor = connection.cursor()
+except Exception as e: 
+    print(f"Error de conexión con la base de datos: {e}")
+    exit()
 
-cursor = conn.cursor()
+def registrar_usuario():
+    nombre_usuario = input("Ingrese un nombre de usuario: ")
+    try:
+        cursor.execute(
+            """
+            INSERT INTO RegistroSueño(nombre_usuario)
+            VALUES (%s)
+            """,
+            (nombre_usuario,),
+        )
+        connection.commit()
+        print("¡Usuario registrado exitosamente!")
+    except Exception as e:
+        print(f"Error al registrar usuario: {e}")
 
-# Función para insertar un registro de sueño
-def insertar_sueño(nombre, fecha, hora):
-    cursor.execute("INSERT INTO sueño (nombre, fecha, hora) VALUES (%s, %s, %s)", (nombre, fecha, hora))
-    conn.commit()
+# Función para iniciar sesión
+def ingresar_usuario():
+    nombre_usuario = input("Ingrese su nombre de usuario: ")
+    try:
+        cursor.execute(
+            """
+            SELECT nombre_usuario
+            FROM RegistroSueño
+            WHERE nombre_usuario = %s
+            """,
+            (nombre_usuario,),
+        )
+        usuario = cursor.fetchone()
+        if usuario:
+            print("¡Inicio de sesión exitoso!")
+            return nombre_usuario
+        else:
+            print("Nombre de usuario incorrecto.")
+            return None
+    except Exception as e:
+        print(f"Error al iniciar sesión: {e}")
+        return None
 
-# Función para obtener todos los registros de sueño de un nombre
-def get_sueño(nombre):
-    cursor.execute("SELECT * FROM sueño WHERE nombre = %s", (nombre,))
-    return cursor.fetchall()
+# Función para registrar horas de sueño
+def registrar_horas_sueño(nombre_usuario):
+    fecha = input("Ingrese la fecha de registro (YYYY-MM-DD): ")
+    horas_sueño = int(input("Ingrese la cantidad de horas de sueño: "))
+    try:
+        cursor.execute(
+            "INSERT INTO RegistroSueño (nombre_usuario, fecha, horas_sueño) VALUES (%s, %s, %s)",
+            (nombre_usuario, fecha, horas_sueño),
+        )
+        connection.commit()
+        print("Registro de sueño añadido exitosamente.")
+    except Exception as e:
+        print(f"Error al registrar las horas de sueño: {e}")
 
-# Función para obtener el promedio de horas de sueño por día de la semana de un nombre
-def sueño_semanal(nombre):
-    cursor.execute("SELECT EXTRACT(DOW FROM fecha) AS weekday, AVG(hora) AS average FROM sueño WHERE nombre = %s GROUP BY weekday ORDER BY weekday", (nombre,))
-    return cursor.fetchall()
+# Función para ver el historial de sueño
+def ver_historial_sueño(nombre_usuario):
+    try:
+        cursor.execute(
+            "SELECT fecha, horas_sueño FROM RegistroSueño WHERE nombre_usuario = %s ORDER BY fecha DESC",
+            (nombre_usuario,),
+        )
+        registros = cursor.fetchall()
+        print("Historial de sueño:")
+        for registro in registros:
+            print(f"Fecha: {registro[0]}, Horas de sueño: {registro[1]}")
+    except Exception as e:
+        print(f"Error al obtener el historial de sueño: {e}")
 
-# Función para mostrar un gráfico de barras con el promedio de horas de sueño por día de la semana
-def grafica_sueño(data):
-    semana = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"]
-    promedio_total = np.mean([row[1] for row in data])
-    min_dia = min(data, key=lambda row: row[1])
-    max_dia = max(data, key=lambda row: row[1])
-    print(f"Tu promedio total es de {promedio_total:.2f}")
-    print(f"tu tiempo de sueño nimimo fue el {semana[int(min_dia[0])]}, con {min_dia[1]:.2f}")
-    print(f"tu tiempo de sueño maximo fie el {semana[int(max_dia[0])]}, con {max_dia[1]:.2f}")
-def sugerencia_sueño(data):
-    semana = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-    promedio_total = np.mean([row[1] for row in data])
-    min_dia = min(data, key=lambda row: row[1])
-    max_dia = max(data, key=lambda row: row[1])
-    sugerencia = []
-    if promedio_total < 7:
-        sugerencia.append(f"""Deberías dormir más horas en general. El promedio recomendado es de al menos 7
-                          hora por noche. Su promedio actual es {promedio_total:.2f} hora.""")
-    if abs(min_dia[1] - max_dia[1]) > 2:
-        sugerencia.append(f"""Deberías tener un horario de sueño más regular. Durmiendon mucho más o mucho menos algunos
-                          días puede afectar su ritmo carcadiano. Tu día con menos horas de sueño
-                          es el {semana[int(min_dia[0])]}, con {min_dia[1]:.2f} hora. Tu dia 
-                           con mas horas de sueño {semana[int(max_dia[0])]}, con {max_dia[1]:.2f} hora.""")
-    if not sugerencia:
-        sugerencia.append("¡Feilicadades! Tienes un buen habito de sueño")
-    return sugerencia
+# Función para borrar un registro de sueño
+def borrar_registro_sueño(nombre_usuario):
+    fecha = input("Ingrese la fecha del registro a borrar (YYYY-MM-DD): ")
+    try:
+        cursor.execute(
+            "DELETE FROM RegistroSueño WHERE nombre_usuario = %s AND fecha = %s",
+            (nombre_usuario, fecha),
+        )
+        connection.commit()
+        print("Registro de sueño borrado exitosamente.")
+    except Exception as e:
+        print(f"Error al borrar el registro de sueño: {e}")
 
-# Función para validar la entrada del usuario
-def validar_u(prompt, type, min=None, max=None):
+# Función para analizar patrones de sueño
+def analizar_patrones_sueño(nombre_usuario):
+    try:
+        # Promedio de horas de sueño
+        cursor.execute(
+            "SELECT AVG(horas_sueño) FROM RegistroSueño WHERE nombre_usuario = %s",
+            (nombre_usuario,),
+        )
+        promedio = cursor.fetchone()[0]
+
+        # Máximo de horas de sueño
+        cursor.execute(
+            "SELECT fecha, MAX(horas_sueño) FROM RegistroSueño WHERE nombre_usuario = %s GROUP BY fecha ORDER BY MAX(horas_sueño) DESC LIMIT 1",
+            (nombre_usuario,),
+        )
+        maximo = cursor.fetchone()
+
+        # Mínimo de horas de sueño
+        cursor.execute(
+            "SELECT fecha, MIN(horas_sueño) FROM RegistroSueño WHERE nombre_usuario = %s GROUP BY fecha ORDER BY MIN(horas_sueño) ASC LIMIT 1",
+            (nombre_usuario,),
+        )
+        minimo = cursor.fetchone()
+
+        print(f"\nPromedio de horas de sueño: {promedio:.2f} horas.")
+        if maximo:
+            print(f"Mayor cantidad de sueño el {maximo[0]} con {maximo[1]} horas.")
+        if minimo:
+            print(f"Menor cantidad de sueño el {minimo[0]} con {minimo[1]} horas.")
+    except Exception as e:
+        print(f"Error al analizar patrones de sueño: {e}")
+
+# Función para ofrecer sugerencias para mejorar la calidad del sueño
+def sugerencias_calidad_sueño(nombre_usuario):
+    try:
+        # Promedio de horas de sueño
+        cursor.execute(
+            "SELECT AVG(horas_sueño) FROM RegistroSueño WHERE nombre_usuario = %s",
+            (nombre_usuario,),
+        )
+        promedio = cursor.fetchone()[0]
+
+        # Máximo de horas de sueño
+        cursor.execute(
+            "SELECT MAX(horas_sueño) FROM RegistroSueño WHERE nombre_usuario = %s",
+            (nombre_usuario,),
+        )
+        maximo = cursor.fetchone()[0]
+
+        # Mínimo de horas de sueño
+        cursor.execute(
+            "SELECT MIN(horas_sueño) FROM RegistroSueño WHERE nombre_usuario = %s",
+            (nombre_usuario,),
+        )
+        minimo = cursor.fetchone()[0]
+
+        print(f"\nPromedio de horas de sueño: {promedio:.2f} horas.")
+        if promedio < 7:
+            print("Parece que no estás durmiendo lo suficiente. Intenta establecer una rutina nocturna que promueva el sueño.")
+        elif promedio > 9:
+            print("Estás durmiendo más de lo recomendado para la mayoría de los adultos. Si te sientes muy cansado durante el día, considera consultar a un médico.")
+        else:
+            print("Tu promedio de sueño está dentro del rango recomendado. ¡Sigue así!")
+
+        if minimo < 5:
+            print("Tus noches de menor sueño son muy cortas. Asegúrate de no tener grandes variaciones en tu horario de sueño.")
+        
+        if maximo > 10:
+            print("Algunas de tus noches tienen un exceso de sueño. Intenta evitar dormir mucho más de lo habitual para mantener un ritmo regular.")
+
+        # Sugerencias generales
+        print("\nSugerencias generales para mejorar la calidad del sueño:")
+        print("- Mantén un horario regular para dormir y despertar.")
+        print("- Reduce la exposición a pantallas electrónicas antes de dormir.")
+        print("- Asegúrate de que tu dormitorio sea un espacio tranquilo, oscuro y fresco.")
+        print("- Considera hacer ejercicio regularmente, pero no justo antes de dormir.")
+    except Exception as e:
+        print(f"Error al generar sugerencias para mejorar la calidad del sueño: {e}")
+
+def main():
+    nombre_usuario = None
     while True:
-        try:
-            value = type(input(prompt))
-            if min is not None and value < min:
-                raise ValueError(f"El valor debe ser mayor o igual a {min}")
-            if max is not None and value > max:
-                raise ValueError(f"El valor debe ser menor o igual a {max}")
-            return value
-        except ValueError as e:
-            print(f"Entrada inválida: {e}")
-def menu():
-    print("Selecciona una opción:")
-    print("1. Registrar horas de sueño")
-    print("2. Ver registros de sueño")
-    print("3. Ver análisis de sueño")
-    print("4. Ver sugerencias")
-    print("5. Regresar")
-# Función principal
-while True:
-    # Obtener el nombre del usuario
-    regis = input("""Programa de registro y análisis de sueño. \n1. Ingresar\n2.Registrar\n3. Salir 
-    \nSeleccione una opccion: """)
-    if regis == "1":
-        nombre = input("Ingresa tu nombre:  ")
-        print(f"Bienvenido de vuelta {nombre}")
-    elif regis == "2":
-        nombre = input("Ingresa tu nombre:  ")
-        print("Usuario registrado exitosamente")
-    elif regis == "3":
-        break
-    else: 
-        print("opción no valida")
-    # Mostrar el menú interactivo
-    menu()
-    # Obtener la opción del usuario
-    option = validar_u("Elige una opción: ", int, 1, 5)
-    # Repetir hasta que el usuario elija salir
-    while option != 5:
-        # Ejecutar la opción elegida
-        if option == 1:
-            # Registrar horas de sueño
-            fecha = input("Registrar fecha (AAAA-MM-DD) ")
-            hora = validar_u("Horas de sueño: ", float, 0)
-            insertar_sueño(nombre, fecha, hora)
-            print("Registro guardado con éxito.")
-        elif option == 2:
-            # Ver registros de sueño
-            sueño_data = get_sueño(nombre)
-            if sueño_data:
-                print("Estos son tus registros de sueño:")
-                for row in sueño_data:
-                    print(f"Fecha: {row[1]}, Horas: {row[2]}")
+        if nombre_usuario is None:
+            print("Programa de control de sueño")
+            print("Por favor, ingrese o registre un usuario.")
+            opcion = input("1. Ingresar\n2. Registrar\n3. Salir\nSeleccione una opción: ")
+            if opcion == "1":
+                nombre_usuario = ingresar_usuario()
+            elif opcion == "2":
+                nombre_usuario = registrar_usuario()
+            elif opcion == "3":
+                break
             else:
-                print("No tienes registros de sueño.")
-        elif option == 3:
-            # Ver análisis de patrón de sueño
-            sueño_promedio = sueño_semanal(nombre)
-            if sueño_promedio:
-                print("Este es tu análisis de patrón de sueño:")
-                grafica_sueño(sueño_promedio)
-            else:
-                print("No tienes suficientes datos para el análisis.")
-        elif option == 4:
-            # Ver sugerencias para mejorar la calidad de descanso
-            sueño_promedio = sueño_semanal(nombre)
-            if sueño_promedio:
-                print("Estas son tus sugerencias para mejorar la calidad de sueño:")
-                sueño_suggestions = sugerencia_sueño(sueño_promedio)
-                for suggestion in sueño_suggestions:
-                    print(f"- {suggestion}")
-            else:
-                print("No tienes suficientes datos para las sugerencias.")
-        # Mostrar el menú interactivo de nuevo
-        menu()
-        # Obtener la opción del usuario de nuevo
-        option = validar_u("Elige una opción ", int, 1, 5)
-    # Despedirse del usuario
-    print("Gracias por usar el programa. ¡Hasta pronto!")
+                print("Opción inválida. Por favor, seleccione nuevamente.")
+        else:
+            print("1. Registrar horas de sueño")
+            print("2. Ver historial de sueño")
+            print("3. Borrar registro de sueño")
+            print("4. Analizar patrones de sueño")
+            print("5. Sugerencias para mejorar el sueño")
+            print("6. Regresar")
+            opcion = input("Seleccione una opción: ")
 
+            if opcion == "1":
+                registrar_horas_sueño(nombre_usuario)
+            elif opcion == "2":
+                ver_historial_sueño(nombre_usuario)
+            elif opcion == "3":
+                borrar_registro_sueño(nombre_usuario)
+            elif opcion == "4":
+                analizar_patrones_sueño(nombre_usuario)
+            elif opcion == "5":
+                sugerencias_calidad_sueño( nombre_usuario)
+            elif opcion == "6":
+                nombre_usuario = None
+            else:
+                print("Opción no válida, intente de nuevo.")
 
+if __name__ == "__main__":
+    main()
+# Cerrar conexión con la base de datos al salir del programa
+cursor.close()
+connection.close()
