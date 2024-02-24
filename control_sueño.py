@@ -14,20 +14,28 @@ except Exception as e:
     print(f"Error de conexión con la base de datos: {e}")
     exit()
 
-def registrar_usuario():
-    nombre_usuario = input("Ingrese un nombre de usuario: ")
+def registrar_usuario(nombre_usuario):
+    nombre_usuario = input("Ingrese su nombre de usuario: ")
     try:
+        # Verificar si el nombre de usuario ya existe
         cursor.execute(
-            """
-            INSERT INTO RegistroSueño(nombre_usuario)
-            VALUES (%s)
-            """,
+            "SELECT COUNT(*) FROM RegistroSueño WHERE nombre_usuario = %s",
+            (nombre_usuario,),
+        )
+        cantidad_usuarios = cursor.fetchone()[0]
+        if cantidad_usuarios > 0:
+            print("El nombre de usuario ya está registrado. Por favor, elija otro.")
+            return
+
+        # Registrar el nuevo usuario si no existe
+        cursor.execute(
+            "INSERT INTO RegistroSueño (nombre_usuario) VALUES (%s)",
             (nombre_usuario,),
         )
         connection.commit()
-        print("¡Usuario registrado exitosamente!")
+        print("Usuario registrado exitosamente.")
     except Exception as e:
-        print(f"Error al registrar usuario: {e}")
+        print(f"Error al registrar el usuario: {e}")
 
 # Función para iniciar sesión
 def ingresar_usuario():
@@ -81,17 +89,21 @@ def ver_historial_sueño(nombre_usuario):
         print(f"Error al obtener el historial de sueño: {e}")
 
 # Función para borrar un registro de sueño
-def borrar_registro_sueño(nombre_usuario):
-    fecha = input("Ingrese la fecha del registro a borrar (YYYY-MM-DD): ")
-    try:
-        cursor.execute(
-            "DELETE FROM RegistroSueño WHERE nombre_usuario = %s AND fecha = %s",
-            (nombre_usuario, fecha),
-        )
-        connection.commit()
-        print("Registro de sueño borrado exitosamente.")
-    except Exception as e:
-        print(f"Error al borrar el registro de sueño: {e}")
+def borrar_usuario(nombre_usuario):
+    confirmacion = input("¿Está seguro que desea borrar todos los datos? (S/N): ")
+    if confirmacion.upper() == "S":
+        try:
+            cursor.execute(
+                "DELETE FROM RegistroSueño WHERE nombre_usuario = %s",
+                (nombre_usuario,),
+            )
+            connection.commit()
+            print("Datos del usuario borrado exitosamente.\n")
+        
+        except Exception as e:
+            print(f"Error al borrar las datos del usuario: {e}")
+    else:
+        print("Los datos no seran borrados")
 
 # Función para analizar patrones de sueño
 def analizar_patrones_sueño(nombre_usuario):
@@ -119,9 +131,9 @@ def analizar_patrones_sueño(nombre_usuario):
 
         print(f"\nPromedio de horas de sueño: {promedio:.2f} horas.")
         if maximo:
-            print(f"Mayor cantidad de sueño el {maximo[0]} con {maximo[1]} horas.")
+            print(f"Mayor cantidad de horas de sueño el {maximo[0]} con {maximo[1]} horas.")
         if minimo:
-            print(f"Menor cantidad de sueño el {minimo[0]} con {minimo[1]} horas.")
+            print(f"Menor cantidad de horas de sueño el {minimo[0]} con {minimo[1]} horas.")
     except Exception as e:
         print(f"Error al analizar patrones de sueño: {e}")
 
@@ -182,7 +194,7 @@ def main():
             if opcion == "1":
                 nombre_usuario = ingresar_usuario()
             elif opcion == "2":
-                nombre_usuario = registrar_usuario()
+                nombre_usuario = registrar_usuario(nombre_usuario)
             elif opcion == "3":
                 break
             else:
@@ -201,12 +213,14 @@ def main():
             elif opcion == "2":
                 ver_historial_sueño(nombre_usuario)
             elif opcion == "3":
-                borrar_registro_sueño(nombre_usuario)
+                borrar_usuario(nombre_usuario)
+                nombre_usuario=None
             elif opcion == "4":
                 analizar_patrones_sueño(nombre_usuario)
             elif opcion == "5":
                 sugerencias_calidad_sueño( nombre_usuario)
             elif opcion == "6":
+                print("¡Hasta luego!\n")
                 nombre_usuario = None
             else:
                 print("Opción no válida, intente de nuevo.")
