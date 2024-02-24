@@ -16,21 +16,28 @@ except Exception as e:
     exit()
 
 # Función para registrar un nuevo usuario
-def registrar_usuario():
-    nombre_usuario = input("Ingrese un nombre de usuario: ")
+def registrar_usuario(nombre_usuario):
+    nombre_usuario = input("Ingrese su nombre de usuario: ")
     try:
+        # Verificar si el nombre de usuario ya existe
         cursor.execute(
-            """
-            INSERT INTO HabitosLectura(nombre_usuario)
-            VALUES (%s)
-            """,
+            "SELECT COUNT(*) FROM HabitosLectura WHERE nombre_usuario = %s",
+            (nombre_usuario,),
+        )
+        cantidad_usuarios = cursor.fetchone()[0]
+        if cantidad_usuarios > 0:
+            print("El nombre de usuario ya está registrado. Por favor, elija otro.")
+            return
+
+        # Registrar el nuevo usuario si no existe
+        cursor.execute(
+            "INSERT INTO HabitosLectura (nombre_usuario) VALUES (%s)",
             (nombre_usuario,),
         )
         connection.commit()
-        print("¡Usuario registrado exitosamente!")
+        print("Usuario registrado exitosamente.")
     except Exception as e:
-        print(f"Error al registrar usuario: {e}")
-
+        print(f"Error al registrar el usuario: {e}")
 # Función para iniciar sesión
 def ingresar_usuario():
     nombre_usuario = input("Ingrese su nombre de usuario: ")
@@ -74,21 +81,6 @@ def ingresar_libro_leido(nombre_usuario):
         print(f"Error al registrar libro leído: {e}")
 
 # Función para establecer meta de lectura
-def establecer_meta_lectura(nombre_usuario):
-    meta_lectura = int(input("Ingrese la cantidad de libros que se propone leer: "))
-    try:
-        cursor.execute(
-            """
-            UPDATE HabitosLectura
-            SET meta_lectura = %s
-            WHERE nombre_usuario = %s
-            """,
-            (meta_lectura, nombre_usuario),
-        )
-        connection.commit()
-        print("¡Meta de lectura establecida exitosamente!")
-    except Exception as e:
-        print(f"Error al establecer meta de lectura: {e}")
 
 # Función para recibir recomendaciones
 def obtener_recomendaciones(cursor):
@@ -133,23 +125,21 @@ def ver_historial_lectura(nombre_usuario):
         print(f"Error al obtener historial de lectura: {e}")
 
 # Función para borrar todos los datos del usuario
-def borrar_datos_usuario(nombre_usuario):
+def borrar_usuario(nombre_usuario):
     confirmacion = input("¿Está seguro que desea borrar todos los datos? (S/N): ")
     if confirmacion.upper() == "S":
         try:
             cursor.execute(
-                """
-                DELETE FROM HabitosLectura
-                WHERE nombre_usuario = %s
-                """,
+                "DELETE FROM HabitosLectura WHERE nombre_usuario = %s",
                 (nombre_usuario,),
             )
             connection.commit()
-            print("¡Todos los datos del usuario han sido borrados exitosamente!")
+            print("Datos del usuario borrado exitosamente.\n")
+        
         except Exception as e:
-            print(f"Error al borrar los datos del usuario: {e}")
+            print(f"Error al borrar las datos del usuario: {e}")
     else:
-        print("Operación cancelada.")
+        print("Los datos no seran borrados")
 
 # Menú principal
 def main():
@@ -162,7 +152,7 @@ def main():
             if opcion == "1":
                 nombre_usuario = ingresar_usuario()
             elif opcion == "2":
-                nombre_usuario = registrar_usuario()
+                nombre_usuario = registrar_usuario(nombre_usuario)
             elif opcion == "3":
                 print("¡Hasta luego!")
                 break
@@ -170,24 +160,23 @@ def main():
                 print("Opción inválida. Por favor, seleccione nuevamente.")
         else:
             print("1. Ingresar libro leído")
-            print("2. Establecer meta de lectura")
-            print("3. Recibir recomendaciones")
-            print("4. Ver historial de lectura")
-            print("5. Borrar todos los datos del usuario")
-            print("6. Regresar")
+            print("2. Recibir recomendaciones")
+            print("3. Ver historial de lectura")
+            print("4. Borrar todos los datos del usuario")
+            print("5. Regresar")
 
             opcion = input("Ingrese una opción: ")
             if opcion == "1":
                 ingresar_libro_leido(nombre_usuario)
             elif opcion == "2":
-                establecer_meta_lectura(nombre_usuario)
-            elif opcion == "3":
                 obtener_recomendaciones(cursor)
-            elif opcion == "4":
+            elif opcion == "3":
                 ver_historial_lectura(nombre_usuario)
+            elif opcion == "4":
+                borrar_usuario(nombre_usuario)
+                nombre_usuario = None
             elif opcion == "5":
-                borrar_datos_usuario(nombre_usuario)
-            elif opcion == "6":
+                print("¡Hasta luego!\n")
                 nombre_usuario = None
             else:
                 print("Opción no válida.")
