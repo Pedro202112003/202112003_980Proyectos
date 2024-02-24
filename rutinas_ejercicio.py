@@ -14,33 +14,35 @@ except Exception as e:
     exit()
 
 # Función para registrar un nuevo usuario
-def registrar_usuario():
-    nombre_usuario = input("Ingrese un nombre de usuario: ")
+def registrar_usuario(nombre_usuario):
+    nombre_usuario = input("Ingrese su nombre de usuario: ")
     try:
+        # Verificar si el nombre de usuario ya existe
         cursor.execute(
-            """
-            INSERT INTO rutinas(nombre_usuario)
-            VALUES (%s)
-            """,
+            "SELECT COUNT(*) FROM rutinas WHERE nombre_usuario = %s",
+            (nombre_usuario,),
+        )
+        cantidad_usuarios = cursor.fetchone()[0]
+        if cantidad_usuarios > 0:
+            print("El nombre de usuario ya está registrado. Por favor, elija otro.")
+            return
+
+        # Registrar el nuevo usuario si no existe
+        cursor.execute(
+            "INSERT INTO rutinas (nombre_usuario) VALUES (%s)",
             (nombre_usuario,),
         )
         connection.commit()
-        print("¡Usuario registrado exitosamente!")
+        print("Usuario registrado exitosamente.")
     except Exception as e:
-        print(f"Error al registrar usuario: {e}")
+        print(f"Error al registrar el usuario: {e}")
 
 # Función para iniciar sesión
 def ingresar_usuario():
     nombre_usuario = input("Ingrese su nombre de usuario: ")
     try:
         cursor.execute(
-            """
-            SELECT nombre_usuario
-            FROM rutinas
-            WHERE nombre_usuario = %s
-            """,
-            (nombre_usuario,),
-        )
+            "SELECT nombre_usuario FROM rutinas WHERE nombre_usuario = %s",(nombre_usuario,),)
         usuario = cursor.fetchone()
         if usuario:
             print("¡Inicio de sesión exitoso!")
@@ -143,30 +145,21 @@ def completar_rutina(nombre_usuario):
     except Exception as e:
         print(f"Error al marcar la rutina como completada: {e}")
 
-def borrar_datos_usuario(nombre_usuario):
+def borrar_usuario(nombre_usuario):
     confirmacion = input("¿Está seguro que desea borrar todos los datos? (S/N): ")
     if confirmacion.upper() == "S":
         try:
             cursor.execute(
-                """
-                DELETE FROM rutinas
-                WHERE nombre_usuario = %s
-                """,
-                (nombre_usuario,),
-            )
-            cursor.execute(
-                """
-                DELETE FROM metas
-                WHERE nombre_usuario = %s
-                """,
+                "DELETE FROM GastosAlimentos WHERE nombre_usuario = %s",
                 (nombre_usuario,),
             )
             connection.commit()
-            print("¡Todos los datos del usuario han sido borrados exitosamente!")
+            print("Datos del usuario borrado exitosamente.\n")
+        
         except Exception as e:
-            print(f"Error al borrar los datos del usuario: {e}")
+            print(f"Error al borrar las datos del usuario: {e}")
     else:
-        print("Operación cancelada.")
+        print("Los datos no seran borrados")
 
 
 def main():
@@ -178,14 +171,8 @@ def main():
             opcion = input("1. Ingresar\n2. Registrar\n3. Salir\nSeleccione una opción: ")
             if opcion == "1":
                 nombre_usuario = ingresar_usuario()
-                cursor.execute("SELECT COUNT(*) FROM tareas WHERE usuario = %s", (nombre_usuario,))
-                count = cursor.fetchone()[0]
-                if count == 0:
-                    print("El usuario ingresado no está registrado. Por favor, inténtelo de nuevo.")
-                    nombre_usuario = None
-                    continue
             elif opcion == "2":
-                nombre_usuario = registrar_usuario()
+                nombre_usuario = registrar_usuario(nombre_usuario)
             elif opcion == "3":
                 break
             else:
@@ -208,8 +195,10 @@ def main():
             elif opcion == "4":
                 ver_estadisticas(nombre_usuario)
             elif opcion == "5":
-                borrar_datos_usuario(nombre_usuario)
+                borrar_usuario(nombre_usuario)
+                nombre_usuario = None
             elif opcion == "6":
+                print("¡Hasta luego!\n")
                 nombre_usuario=None
             else:
                 print("Opción no válida.")

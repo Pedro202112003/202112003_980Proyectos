@@ -14,20 +14,30 @@ except Exception as e:
     print(f"Error de conexión con la base de datos {e}")
     exit()
 
-def registrar_usuario():
-    nombre_usuario = input("Ingrese un nombre de usuario: ")
+# Función para registrar un nuevo usuario
+def registrar_usuario(nombre_usuario):
+    nombre_usuario = input("Ingrese su nombre de usuario: ")
     try:
+        # Verificar si el nombre de usuario ya existe
         cursor.execute(
-            """
-            INSERT INTO GastosAlimentos(nombre_usuario)
-            VALUES (%s)
-            """,
+            "SELECT COUNT(*) FROM GastosAlimentos WHERE nombre_usuario = %s",
+            (nombre_usuario,),
+        )
+        cantidad_usuarios = cursor.fetchone()[0]
+        if cantidad_usuarios > 0:
+            print("El nombre de usuario ya está registrado. Por favor, elija otro.")
+            return
+
+        # Registrar el nuevo usuario si no existe
+        cursor.execute(
+            "INSERT INTO GastosAlimentos (nombre_usuario) VALUES (%s)",
             (nombre_usuario,),
         )
         connection.commit()
-        print("¡Usuario registrado exitosamente!")
+        print("Usuario registrado exitosamente.")
     except Exception as e:
-        print(f"Error al registrar usuario: {e}")
+        print(f"Error al registrar el usuario: {e}")
+
 
 # Función para iniciar sesión
 def ingresar_usuario():
@@ -87,7 +97,7 @@ def ver_historial_gastos_alimentos(nombre_usuario):
         if historial:
             print("Historial de gastos en alimentos:")
             for fecha, monto, categoria, meta_calorias in historial:
-                print(f"Fecha: {fecha}, Monto: {monto}, Categoría: {categoria}, Meta de calorías: {meta_calorias}")
+                print(f"Fecha: {fecha}, Monto: {monto}, Categoría: {categoria}, calorías consumidas: {meta_calorias}")
         else:
             print("No hay registros de gastos en alimentos para este usuario.")
     except Exception as e:
@@ -152,6 +162,19 @@ def establecer_metas_nutricionales(nombre_usuario):
     except Exception as e:
         print(f"Error al establecer metas nutricionales: {e}")
 
+def borrar_usuario(nombre_usuario):
+    confirmacion = input("¿Está seguro que desea borrar todos los datos? (S/N): ")
+    if confirmacion.upper() == "S":
+        try:
+            cursor.execute(
+                "DELETE FROM GastosAlimentos WHERE nombre_usuario = %s",
+                (nombre_usuario,),
+            )
+            connection.commit()
+            print("Gastos alimenticios y usuario borrado exitosamente.\n")
+        except Exception as e:
+            print(f"Error al borrar las tareas del usuario: {e}")
+
 # Menú principal
 def main():
     nombre_usuario = None
@@ -163,7 +186,7 @@ def main():
             if opcion == "1":
                 nombre_usuario = ingresar_usuario()
             elif opcion == "2":
-                nombre_usuario = registrar_usuario()
+                nombre_usuario = registrar_usuario(nombre_usuario)
             elif opcion == "3":
                 break
             else:
@@ -174,7 +197,8 @@ def main():
             print("3. Análisis de hábitos alimenticios")
             print("4. Ajustar presupuesto")
             print("5. Establecer metas nutricionales")
-            print("6. regresar")
+            print("6. Borrar Usuario")
+            print("7. regresar")
 
             opcion2 = input("Ingrese una opción: ")
 
@@ -189,7 +213,10 @@ def main():
             elif opcion2 == "5":
                 establecer_metas_nutricionales(nombre_usuario)
             elif opcion2 == "6":
-                print("¡Hasta luego!")
+                borrar_usuario(nombre_usuario)
+                nombre_usuario=None
+            elif opcion2 == "7":
+                print("¡Hasta luego!\n")
                 nombre_usuario=None
             else:
                 print("Opción no válida.")

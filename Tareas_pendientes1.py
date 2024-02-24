@@ -11,18 +11,41 @@ connection = psycopg2.connect(
 cursor = connection.cursor()
 def ingresar_usuario():
     usuario = input("Ingrese su nombre de usuario: ")
-    return usuario
+    try:
+        cursor.execute("SELECT usuario FROM tareas WHERE usuario = %s",(usuario,),)
+        usuario = cursor.fetchone()
+        if usuario:
+            print("¡Inicio de sesión exitoso!")
+            return usuario
+        else:
+            print("Nombre de usuario incorrecto.")
+            return None
+    except Exception as e:
+        print(f"Error al iniciar sesión: {e}")
+        return None
 
-def registrar_usuario():
+def registrar_usuario(usuario):
     usuario = input("Ingrese su nombre de usuario: ")
-    # Insertar usuario en la base de datos
-    with connection.cursor() as cursor:
-        cursor.execute("""INSERT INTO tareas (usuario, tarea, fecha_vencimiento, completada) 
-                       VALUES (%s, %s, %s, %s)""", (usuario, "", None, False))
-        connection.commit()
-    print("Usuario registrado exitosamente.")
-    return usuario
+    try:
+        # Verificar si el nombre de usuario ya existe
+        cursor.execute(
+            "SELECT COUNT(*) FROM tareas WHERE usuario = %s",
+            (usuario,),
+        )
+        cantidad_usuarios = cursor.fetchone()[0]
+        if cantidad_usuarios > 0:
+            print("El nombre de usuario ya está registrado. Por favor, elija otro.")
+            return
 
+        # Registrar el nuevo usuario si no existe
+        cursor.execute(
+            "INSERT INTO tareas (usuario) VALUES (%s)",
+            (usuario,),
+        )
+        connection.commit()
+        print("Usuario registrado exitosamente.")
+    except Exception as e:
+        print(f"Error al registrar el usuario: {e}")
 
 def agregar_tarea(usuario):
     tarea = input("Ingrese la descripción de la tarea: ")
@@ -53,29 +76,30 @@ def historial(usuario):
             print(f"ID: {tarea[0]}, Descripción: {tarea[2]}, Fecha de vencimiento: {tarea[3]}, Estado: {estado}")
 
 
-def borrar_datos(usuario):
-    # Borrar todas las tareas del usuario de la base de datos
-    with connection.cursor() as cursor:
-        cursor.execute("DELETE FROM tareas WHERE usuario = %s", (usuario,))
-        connection.commit()
-    print("Todos los datos del usuario han sido eliminados.")
+def borrar_usuario(usuario):
+    confirmacion = input("¿Está seguro que desea borrar todos los datos? (S/N): ")
+    if confirmacion.upper() == "S":
+        try:
+            cursor.execute(
+                "DELETE FROM tareas WHERE usuario = %s",
+                (usuario,),
+            )
+            connection.commit()
+            print("Datos del usuario borradas exitosamente.\n")
+        except Exception as e:
+            print(f"Error al borrar las datos del usuario: {e}")
 
 def main():
     usuario = None
     while True:
         if usuario is None:
+            print("Programa de gestion de tareas pendientes")
             print("Por favor, ingrese o registre un usuario.")
             opcion = input("1. Ingresar\n2. Registrar\n3. Salir\nSeleccione una opción: ")
             if opcion == "1":
                 usuario = ingresar_usuario()
-                cursor.execute("SELECT COUNT(*) FROM tareas WHERE usuario = %s", (usuario,))
-                count = cursor.fetchone()[0]
-                if count == 0:
-                    print("El usuario ingresado no está registrado. Por favor, inténtelo de nuevo.")
-                    usuario = None
-                    continue
             elif opcion == "2":
-                usuario = registrar_usuario()
+                usuario = registrar_usuario(usuario)
             elif opcion == "3":
                 break
             else:
@@ -95,8 +119,10 @@ def main():
             elif opcion == "3":
                 historial(usuario)
             elif opcion == "4":
-                borrar_datos(usuario)
+                borrar_usuario(usuario)
+                usuario=None
             elif opcion == "5":
+                print("¡Hasta luego!\n")
                 usuario = None
             else:
                 print("Opción inválida. Por favor, seleccione nuevamente.")

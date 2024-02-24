@@ -14,20 +14,28 @@ except Exception as e:
     print(f"Error de conexión con la base de datos {e}")
     exit()
 
-def registrar_usuario():
-    nombre_usuario = input("Ingrese un nombre de usuario: ")
+def registrar_usuario(nombre_usuario):
+    nombre_usuario = input("Ingrese su nombre de usuario: ")
     try:
+        # Verificar si el nombre de usuario ya existe
         cursor.execute(
-            """
-            INSERT INTO ProyectosPersonales(nombre_usuario)
-            VALUES (%s)
-            """,
+            "SELECT COUNT(*) FROM ProyectosPersonales WHERE nombre_usuario = %s",
+            (nombre_usuario,),
+        )
+        cantidad_usuarios = cursor.fetchone()[0]
+        if cantidad_usuarios > 0:
+            print("El nombre de usuario ya está registrado. Por favor, elija otro.")
+            return
+
+        # Registrar el nuevo usuario si no existe
+        cursor.execute(
+            "INSERT INTO ProyectosPersonales (nombre_usuario) VALUES (%s)",
             (nombre_usuario,),
         )
         connection.commit()
-        print("¡Usuario registrado exitosamente!")
+        print("Usuario registrado exitosamente.")
     except Exception as e:
-        print(f"Error al registrar usuario: {e}")
+        print(f"Error al registrar el usuario: {e}")
 
 # Función para iniciar sesión
 def ingresar_usuario():
@@ -111,20 +119,20 @@ def ver_historial_tareas(nombre_usuario):
         print(f"Error al obtener historial de tareas: {e}")
 
 # Función para borrar una tarea del proyecto personal
+# Función para borrar todas las tareas de un usuario
 def borrar_tarea(nombre_usuario):
-    tarea_id = int(input("Ingrese el ID de la tarea que desea borrar: "))
-    try:
-        cursor.execute(
-            """
-            DELETE FROM ProyectosPersonales
-            WHERE id = %s AND nombre_usuario = %s
-            """,
-            (tarea_id, nombre_usuario),
-        )
-        connection.commit()
-        print("¡Tarea borrada exitosamente!")
-    except Exception as e:
-        print(f"Error al borrar tarea: {e}")
+    confirmacion = input("¿Está seguro que desea borrar todos los datos? (S/N): ")
+    if confirmacion.upper() == "S":
+        try:
+            cursor.execute(
+                "DELETE FROM ProyectosPersonales WHERE nombre_usuario = %s",
+                (nombre_usuario,),
+            )
+            connection.commit()
+            print("Tareas del usuario borradas exitosamente.")
+        except Exception as e:
+            print(f"Error al borrar las tareas del usuario: {e}")
+
 
 def main():
     nombre_usuario = None
@@ -136,7 +144,7 @@ def main():
             if opcion == "1":
                 nombre_usuario = ingresar_usuario()
             elif opcion == "2":
-                nombre_usuario = registrar_usuario()
+                nombre_usuario = registrar_usuario(nombre_usuario)
             elif opcion == "3":
                 break
             else:
@@ -145,7 +153,7 @@ def main():
             print("1. Registrar nueva tarea")
             print("2. Marcar tarea como completada")
             print("3. Ver historial de tareas")
-            print("4. Borrar tarea")
+            print("4. Borrar Usuario")
             print("5. Regresar")
 
             opcion = input("Ingrese una opción: ")
@@ -158,6 +166,7 @@ def main():
                 ver_historial_tareas(nombre_usuario)
             elif opcion == "4":
                 borrar_tarea(nombre_usuario)
+                nombre_usuario=None
             elif opcion == "5":
                 print("¡Hasta luego!")
                 nombre_usuario=None
