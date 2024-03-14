@@ -1,9 +1,9 @@
 body{
-	background-color: hsl(226, 67%, 35%);
+	background-color: hsl(226, 58%, 43%);
 }
 
 h1,h2,h3,h4,h5,h6{
-	color:hsl(0, 0%, 30%);
+	color:hsl(0, 2%, 51%);
 }
 
 .box-element{
@@ -45,9 +45,9 @@ h1,h2,h3,h4,h5,h6{
 }
 
 #cart-icon{
-	width:25px;
+	width:35px;
 	display: inline-block;
-	margin-left: 15px;
+	margin-left: 20px;
 }
 
 #cart-total{
