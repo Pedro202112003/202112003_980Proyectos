@@ -1,5 +1,5 @@
 body{
-	background-color: hsl(0, 0%, 98%);
+	background-color: hsl(226, 67%, 35%);
 }
 
 h1,h2,h3,h4,h5,h6{
@@ -41,7 +41,7 @@ h1,h2,h3,h4,h5,h6{
     font-weight: bold;
 }
 .bg-dark{
-	background-color: #4f868c!important;
+	background-color: #404849e0!important;
 }
 
 #cart-icon{
